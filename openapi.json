@@ -1,0 +1,2003 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PumpGTM workspace API",
+    "version": "1.0.0",
+    "summary": "Read and control one PumpGTM workspace: leads, sequences, LinkedIn pacing, activity, pending replies and the funnel report.",
+    "description": "Every operation is scoped to the workspace that owns the bearer key. Versioned in the path (/api/v1); existing fields are never removed or renamed within v1. Anything scheduled for removal answers with Deprecation: true and a Sunset header at least 90 days ahead. Webhooks (reply.received, lead.* events, HMAC-SHA256 signed) are managed under /api/v1/webhooks. Creating sequences, adding leads and finding people are on the MCP server (https://github.com/gigacatalyst/pumpgtm-mcp).",
+    "termsOfService": "https://pumpgtm.com/terms-of-service",
+    "contact": {
+      "name": "PumpGTM",
+      "email": "hello@pumpgtm.com",
+      "url": "https://pumpgtm.com/docs/api"
+    },
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "externalDocs": {
+    "description": "Human-readable docs",
+    "url": "https://pumpgtm.com/docs/api"
+  },
+  "servers": [
+    {
+      "url": "https://app.pumpgtm.com"
+    }
+  ],
+  "security": [
+    {
+      "workspaceKey": [
+        "workspace:read"
+      ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "Reporting"
+    },
+    {
+      "name": "Sequences"
+    },
+    {
+      "name": "Leads"
+    },
+    {
+      "name": "Replies"
+    },
+    {
+      "name": "Webhooks"
+    },
+    {
+      "name": "Energy"
+    }
+  ],
+  "paths": {
+    "/api/v1/progress": {
+      "get": {
+        "operationId": "getProgress",
+        "tags": [
+          "Reporting"
+        ],
+        "summary": "Funnel totals and per-account LinkedIn pacing",
+        "parameters": [
+          {
+            "name": "sinceDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90,
+              "default": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "period": {
+                      "type": "object",
+                      "properties": {
+                        "since": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "days": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "funnel": {
+                      "$ref": "#/components/schemas/Funnel"
+                    },
+                    "queued": {
+                      "type": "integer"
+                    },
+                    "recentActions": {
+                      "type": "integer"
+                    },
+                    "recentFailures": {
+                      "type": "integer"
+                    },
+                    "excludedWarmupAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Always empty; kept for older clients"
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LinkedInAccount"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/funnel": {
+      "get": {
+        "operationId": "getFunnelReport",
+        "tags": [
+          "Reporting"
+        ],
+        "summary": "Funnel per sequence or per account, with A/B arms",
+        "parameters": [
+          {
+            "name": "group_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "sequence",
+                "account"
+              ],
+              "default": "sequence"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Funnel report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groupBy": {
+                      "type": "string"
+                    },
+                    "excludedWarmupAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "total": {
+                      "$ref": "#/components/schemas/Funnel"
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "funnel": {
+                            "$ref": "#/components/schemas/Funnel"
+                          }
+                        }
+                      }
+                    },
+                    "experimentArms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sequenceId": {
+                            "type": "string"
+                          },
+                          "variantKey": {
+                            "type": "string"
+                          },
+                          "sent": {
+                            "type": "integer"
+                          },
+                          "accepted": {
+                            "type": "integer"
+                          },
+                          "replied": {
+                            "type": "integer"
+                          },
+                          "meetingsBooked": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/sequences": {
+      "get": {
+        "operationId": "listSequences",
+        "tags": [
+          "Sequences"
+        ],
+        "summary": "Every sequence with steps, status, approval state and lead count",
+        "responses": {
+          "200": {
+            "description": "Sequences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequences": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Sequence"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/sequences/{id}/status": {
+      "patch": {
+        "operationId": "setSequenceStatus",
+        "tags": [
+          "Sequences"
+        ],
+        "summary": "Start, pause or reopen a sequence",
+        "security": [
+          {
+            "workspaceKey": [
+              "workspace:write"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "paused",
+                      "draft"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "status": "paused"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "sequenceId": {
+                      "type": "string"
+                    },
+                    "previousStatus": {
+                      "$ref": "#/components/schemas/SequenceStatus"
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/SequenceStatus"
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true,
+                  "sequenceId": "505ef60c-4b0f-4564-836a-5045ae9f43ee",
+                  "previousStatus": "active",
+                  "status": "paused"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "description": "status must be one of active, paused, draft"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "description": "sequence not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed in the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "sequence_approval_required",
+                        "archived_sequence_is_read_only"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/leads": {
+      "get": {
+        "operationId": "listLeads",
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Leads with stage, timestamps and sequence progress",
+        "parameters": [
+          {
+            "name": "stage",
+            "in": "query",
+            "description": "Cumulative: reached this milestone or beyond",
+            "schema": {
+              "$ref": "#/components/schemas/LeadStage"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Name, company or title search",
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "engaged",
+            "in": "query",
+            "description": "1 = only leads with LinkedIn activity",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          },
+          {
+            "name": "booked",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          },
+          {
+            "name": "sinceDays",
+            "in": "query",
+            "description": "Engaged within the last N days; implies engaged=1",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 365
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leads page with exact count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "description": "Exact total for the filter, independent of limit"
+                    },
+                    "returned": {
+                      "type": "integer"
+                    },
+                    "leads": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Lead"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/activity": {
+      "get": {
+        "operationId": "listActivity",
+        "tags": [
+          "Reporting"
+        ],
+        "summary": "Append-only ledger of every action an account took",
+        "parameters": [
+          {
+            "name": "account",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "LinkedIn account id (onb_...)"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Comma separated action types",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ok",
+                "skipped",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "sinceDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity page with exact count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "returned": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Action"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/replies": {
+      "get": {
+        "operationId": "listPendingReplies",
+        "tags": [
+          "Replies"
+        ],
+        "summary": "Inbound replies waiting for a human decision",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pending replies with drafts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "replies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingReply"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/replies/{id}/decide": {
+      "post": {
+        "operationId": "decideReply",
+        "tags": [
+          "Replies"
+        ],
+        "summary": "Apply one decision to a pending reply",
+        "description": "send, invite and booking_link message the prospect from their LinkedIn account. opt_out is permanent. The same code runs behind the in-app and Slack buttons.",
+        "security": [
+          {
+            "workspaceKey": [
+              "workspace:write"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Draft id from GET /api/v1/replies",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision"
+                ],
+                "properties": {
+                  "decision": {
+                    "$ref": "#/components/schemas/ReplyDecision"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "description": "Replaces the draft on send"
+                  },
+                  "days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365,
+                    "description": "Snooze length"
+                  },
+                  "by": {
+                    "type": "string",
+                    "default": "api",
+                    "description": "Label for the audit trail"
+                  }
+                }
+              },
+              "example": {
+                "decision": "send",
+                "text": "Happy to. Does Tuesday 10am PT work?",
+                "by": "gtme-dashboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "description": "decision must be one of ..."
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "description": "reply not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Decision no longer applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "This workspace's webhooks, without secrets",
+        "responses": {
+          "200": {
+            "description": "Webhooks and the event catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Webhook"
+                      }
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookEvent"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createWebhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Create a webhook; the signing secret is returned once",
+        "security": [
+          {
+            "workspaceKey": [
+              "workspace:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "events"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "HTTPS only"
+                  },
+                  "events": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/WebhookEvent"
+                    }
+                  }
+                }
+              },
+              "example": {
+                "url": "https://example.com/pumpgtm",
+                "events": [
+                  "reply.received",
+                  "lead.accepted"
+                ]
+              }
+            }
+          }
+        },
+        "callbacks": {
+          "delivery": {
+            "{$request.body#/url}": {
+              "post": {
+                "summary": "Event delivery",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/WebhookDelivery"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "2XX": {
+                    "description": "Acknowledged. Anything else, a timeout, 429 or 5xx is retried twice."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Webhook"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "whsec_..., shown once"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Non-HTTPS URL or unknown event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Ten webhooks already exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "const": "webhook_limit_reached"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}": {
+      "delete": {
+        "operationId": "deleteWebhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Delete a webhook",
+        "security": [
+          {
+            "workspaceKey": [
+              "workspace:write"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "const": "webhook not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/test": {
+      "post": {
+        "operationId": "testWebhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Send a ping event to this webhook now",
+        "security": [
+          {
+            "workspaceKey": [
+              "workspace:write"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Ping queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "event": {
+                      "const": "ping"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Not in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "const": "webhook not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/energy": {
+      "get": {
+        "operationId": "getEnergy",
+        "tags": [
+          "Energy"
+        ],
+        "summary": "This month's Energy for the workspace",
+        "responses": {
+          "200": {
+            "description": "Energy balance, or enabled=false for an unmetered workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Energy"
+                },
+                "example": {
+                  "enabled": true,
+                  "monthlyAllowance": 1500,
+                  "extra": 0,
+                  "used": 30,
+                  "remaining": 1470,
+                  "periodStart": "2026-09-01T00:00:00.000Z",
+                  "resetsAt": "2026-10-01T00:00:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "workspaceKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "eve_mcp_<43 chars>",
+        "description": "Workspace key from the MCP page in app.pumpgtm.com. The same key authenticates the MCP server. Scope is fixed by the key: workspace:read for GET operations, workspace:write for PATCH and POST."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing, unknown, revoked or expired key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "error"
+              ],
+              "description": "unauthorized"
+            },
+            "example": {
+              "error": "unauthorized"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Not applied today. If a rate limit is added, the response is 429 with Retry-After seconds.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Seconds to wait"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Funnel": {
+        "type": "object",
+        "properties": {
+          "leads": {
+            "type": "integer"
+          },
+          "invited": {
+            "type": "integer"
+          },
+          "accepted": {
+            "type": "integer"
+          },
+          "messaged": {
+            "type": "integer"
+          },
+          "replied": {
+            "type": "integer"
+          },
+          "meetingsBooked": {
+            "type": "integer"
+          },
+          "meetingsQualifying": {
+            "type": "integer"
+          },
+          "meetingsNoShowOrCancelled": {
+            "type": "integer"
+          },
+          "repliesPositive": {
+            "type": "integer"
+          },
+          "repliesNegative": {
+            "type": "integer"
+          },
+          "acceptRate": {
+            "type": "number"
+          },
+          "replyRate": {
+            "type": "number"
+          }
+        }
+      },
+      "LinkedInAccount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "warmup",
+              "outreach"
+            ]
+          },
+          "storedStatus": {
+            "type": "string"
+          },
+          "connectedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "warmupStartedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "pacingTimeZone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invitesSentToday": {
+            "type": "integer"
+          },
+          "inviteCapToday": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rampPhase": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accountScore": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "relationsCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "Lead": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "company": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "linkedinUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "account": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "LinkedIn account id (onb_...) that owns the lead, null while pooled"
+          },
+          "sequenceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "strategyId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "strategyRunId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invitePriority": {
+            "type": "integer"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          },
+          "currentStep": {
+            "type": "integer"
+          },
+          "nextActionAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "sequenceDone": {
+            "type": "boolean"
+          },
+          "invitedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "connectedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "messagedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "repliedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "meetingBookedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "meetingOutcome": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "held",
+              "cancelled",
+              "no_show",
+              null
+            ]
+          },
+          "snoozedUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "optedOutAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "replySentiment": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Sequence": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SequenceStatus"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "approvedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "approvedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "executionBlockReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "leadCount": {
+            "type": "integer"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "linkedin",
+                "email",
+                "x",
+                "instagram"
+              ]
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SequenceStep"
+            }
+          }
+        }
+      },
+      "SequenceStep": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "connect",
+              "message",
+              "engage",
+              "email",
+              "x_dm",
+              "x_engage",
+              "instagram_dm"
+            ]
+          },
+          "delayDays": {
+            "type": "integer"
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "reaction": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "variants": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "integer"
+                },
+                "messageTmpl": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "tool": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      },
+      "PendingReply": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Draft id; pass it to the decide endpoint"
+          },
+          "lead": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "person": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "company": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "linkedinUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "email": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "account": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sequenceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "classification": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "theirMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "draft": {
+            "type": "string"
+          },
+          "repliedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "allowedDecisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplyDecision"
+            }
+          }
+        }
+      },
+      "Action": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "$ref": "#/components/schemas/ActionType"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "skipped",
+              "failed",
+              "duplicate"
+            ]
+          },
+          "units": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "account": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lead": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "person": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "company": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "linkedinUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "LeadStage": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "resolving",
+          "invited",
+          "accepted",
+          "messaged",
+          "followed_up",
+          "replied",
+          "failed",
+          "skipped"
+        ]
+      },
+      "SequenceStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "archived"
+        ]
+      },
+      "ReplyDecision": {
+        "type": "string",
+        "enum": [
+          "send",
+          "invite",
+          "booking_link",
+          "snooze",
+          "start_sequence",
+          "meeting_booked",
+          "dismiss",
+          "opt_out"
+        ]
+      },
+      "ActionType": {
+        "type": "string",
+        "enum": [
+          "resolve",
+          "invite",
+          "accepted",
+          "like",
+          "message",
+          "followup",
+          "reply_detected",
+          "view_profile",
+          "endorse",
+          "comment",
+          "enrich",
+          "meeting_invited",
+          "reply_drafted",
+          "reply_sent",
+          "reply_dismissed",
+          "reply_snoozed",
+          "sequence_started",
+          "meeting_booked",
+          "meeting_no_show",
+          "meeting_synced",
+          "manual_override",
+          "email_sent",
+          "email_skipped",
+          "email_bounced",
+          "x_dm",
+          "x_follow",
+          "x_like",
+          "x_follow_back",
+          "instagram_dm",
+          "instagram_comment",
+          "error"
+        ]
+      },
+      "WebhookEvent": {
+        "type": "string",
+        "enum": [
+          "reply.received",
+          "lead.invited",
+          "lead.accepted",
+          "lead.messaged",
+          "lead.emailed",
+          "lead.meeting_booked",
+          "ping"
+        ]
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "description": "Body of every webhook POST. Headers: X-PumpGTM-Event, X-PumpGTM-Delivery, X-PumpGTM-Signature (t=<unix>,v1=<hex HMAC-SHA256 of '<t>.<raw body>' with the webhook secret).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event": {
+            "$ref": "#/components/schemas/WebhookEvent"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "replyId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "lead": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "person": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "company": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "linkedinUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "account": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "sequenceId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "stage": {
+                    "$ref": "#/components/schemas/LeadStage"
+                  }
+                }
+              },
+              "classification": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "theirMessage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "draft": {
+                "type": "string"
+              },
+              "webhookId": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Energy": {
+        "type": "object",
+        "description": "One Energy is one person found by discovery. Resets on the first of each UTC month.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "monthlyAllowance": {
+            "type": "integer"
+          },
+          "extra": {
+            "type": "integer",
+            "description": "Energy added on top of the monthly allowance"
+          },
+          "used": {
+            "type": "integer"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resetsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
