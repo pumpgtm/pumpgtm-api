@@ -9,6 +9,8 @@ Leads, sequences, LinkedIn pacing, the activity ledger, pending replies, signed 
 <a href="https://pumpgtm.com/docs/api"><img alt="Docs" src="https://img.shields.io/badge/docs-pumpgtm.com%2Fdocs%2Fapi-2f5cff"></a>
 <a href="openapi.json"><img alt="OpenAPI" src="https://img.shields.io/badge/OpenAPI-3.1%20valid-6f42c1"></a>
 <a href="https://github.com/pumpgtm/pumpgtm-mcp"><img alt="MCP" src="https://img.shields.io/badge/MCP%20server-24%20tools-000000"></a>
+<a href="https://pumpgtm.com/yc"><img alt="Backed by Y Combinator" src="https://img.shields.io/badge/Backed%20by-Y%20Combinator-F26522"></a>
+<a href="https://pumpgtm.com/blog/ai-founder-led-outbound-system"><img alt="Runs outbound for 10+ YC companies" src="https://img.shields.io/badge/runs%20outbound%20for-10%2B%20YC%20companies-F26522"></a>
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-lightgrey"></a>
 </p>
 
@@ -42,7 +44,7 @@ flowchart LR
 <table>
 <tr>
 <td width="50%" align="center"><a href="https://pumpgtm.com/blog/what-is-pumpgtm-how-it-works"><img src="https://img.youtube.com/vi/wEb9ZDUIsc0/hqdefault.jpg" alt="What is PumpGTM and how does it work" width="100%"></a><br><sub><b>What is PumpGTM, and how does it actually work?</b><br>4 minute walkthrough</sub></td>
-<td width="50%" align="center"><a href="https://x.com/NamanyayG/article/2100996660314902546"><img src="https://pumpgtm.com/blog/linkedin-lead-scoring-before-outreach.jpg" alt="GTM engineering: why a lead is fit, timing, intent and confidence" width="100%"></a><br><sub><b>GTM engineering: why a lead is fit, timing, intent and confidence</b><br>Namanyay's article on X, the scoring model behind find_people. <a href="https://pumpgtm.com/blog/gtm-engineering-lead-scoring">Read on pumpgtm.com</a></sub></td>
+<td width="50%" align="center"><a href="https://x.com/NamanyayG/article/2097783972302557668"><img src="https://pumpgtm.com/blog/covers/ai-founder-led-outbound-system.png" alt="Using AI to run founder-led outbound for 10 YC companies" width="100%"></a><br><sub><b>Using AI to run founder-led outbound for 10 YC companies</b><br>Namanyay's article on X: one lead universe, shared prospects, copy measured by meetings. <a href="https://pumpgtm.com/blog/ai-founder-led-outbound-system">Read on pumpgtm.com</a></sub></td>
 </tr>
 </table>
 
