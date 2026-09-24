@@ -1,13 +1,53 @@
-# PumpGTM workspace REST API
+<p align="center"><a href="https://pumpgtm.com"><img src="assets/banner.png" alt="PumpGTM" width="100%"></a></p>
 
-**Read and control one PumpGTM workspace over plain HTTPS.** Leads, sequences, LinkedIn pacing, the activity ledger, pending replies and the funnel report, for dashboards, reporting and automations that are not MCP clients. Everything here is also on the [MCP server](https://github.com/pumpgtm/pumpgtm-mcp), which is the richer surface.
+<h1 align="center">PumpGTM workspace REST API</h1>
 
-- Website: https://pumpgtm.com
-- Live docs: https://pumpgtm.com/docs/api
-- Machine-readable spec: [`openapi.json`](openapi.json) (OpenAPI 3.1)
-- Examples: [`examples/`](examples)
+<p align="center"><b>Read and control one PumpGTM workspace over plain HTTPS.</b><br>
+Leads, sequences, LinkedIn pacing, the activity ledger, pending replies, signed webhooks and Energy, for dashboards, reporting and automations that are not MCP clients. Everything here is also on the <a href="https://github.com/pumpgtm/pumpgtm-mcp">MCP server</a>, which is the richer surface.</p>
 
-Machine-readable: [openapi.json](https://pumpgtm.com/openapi.json) (OpenAPI 3.1, validates clean, generate a client from it). Plain Markdown of this page: [/markdown/pages/docs/api.md](https://pumpgtm.com/markdown/pages/docs/api.md). New here? Start with the [quickstart](https://pumpgtm.com/docs/quickstart).
+<p align="center">
+<a href="https://pumpgtm.com/docs/api"><img alt="Docs" src="https://img.shields.io/badge/docs-pumpgtm.com%2Fdocs%2Fapi-2f5cff"></a>
+<a href="openapi.json"><img alt="OpenAPI" src="https://img.shields.io/badge/OpenAPI-3.1%20valid-6f42c1"></a>
+<a href="https://github.com/pumpgtm/pumpgtm-mcp"><img alt="MCP" src="https://img.shields.io/badge/MCP%20server-24%20tools-000000"></a>
+<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-lightgrey"></a>
+</p>
+
+<p align="center">
+<a href="https://pumpgtm.com/docs/quickstart">Quickstart</a> · <a href="https://pumpgtm.com/docs/api">Docs</a> · <a href="openapi.json">openapi.json</a> · <a href="examples">Examples</a> · <a href="https://github.com/pumpgtm/pumpgtm-mcp">MCP server</a> · <a href="https://www.youtube.com/@pumpgtm">YouTube</a>
+</p>
+
+## Try it in one line
+
+```bash
+curl -s "https://app.pumpgtm.com/api/v1/progress?sinceDays=7" -H "Authorization: Bearer $PUMPGTM_KEY"
+```
+
+The key is on the MCP page of your workspace at [app.pumpgtm.com](https://app.pumpgtm.com). Generate a typed client from [`openapi.json`](openapi.json), or start from the [curl](examples/curl.sh), [Node](examples/node.mjs) and [Python](examples/python.py) examples.
+
+## What the API reads and controls
+
+<p align="center"><img src="assets/sequences.png" alt="A running PumpGTM sequence: funnel, senders, message variants and steps" width="100%"></p>
+
+```mermaid
+flowchart LR
+  D[Your dashboard or automation] -- Bearer workspace key --> A[app.pumpgtm.com/api/v1]
+  A --> S[sequences, leads, activity, progress, funnel]
+  A --> R[pending replies and decisions]
+  A --> W[webhooks]
+  W -- signed POST: reply.received, lead.* --> D
+```
+
+## Watch
+
+<table>
+<tr>
+<td width="33%" align="center"><a href="https://pumpgtm.com/blog/run-a-linkedin-sales-team-with-claude"><img src="https://img.youtube.com/vi/_bHLnE9m-ns/hqdefault.jpg" alt="How to run an entire LinkedIn sales team with Claude" width="100%"></a><br><sub><b>Run an entire LinkedIn sales team with Claude</b><br>Namanyay, founder</sub></td>
+<td width="33%" align="center"><a href="https://pumpgtm.com/blog/what-is-pumpgtm-how-it-works"><img src="https://img.youtube.com/vi/wEb9ZDUIsc0/hqdefault.jpg" alt="What is PumpGTM and how does it work" width="100%"></a><br><sub><b>What is PumpGTM, and how does it actually work?</b><br>4 minute walkthrough</sub></td>
+<td width="33%" align="center"><a href="https://www.youtube.com/watch?v=iVmfRxvEQuE"><img src="https://img.youtube.com/vi/iVmfRxvEQuE/hqdefault.jpg" alt="Claude can send LinkedIn DMs for you now" width="100%"></a><br><sub><b>Claude can send LinkedIn DMs for you now</b><br>Independent creator, MCP walkthrough</sub></td>
+</tr>
+</table>
+
+More on the [PumpGTM YouTube channel](https://www.youtube.com/@pumpgtm) and in [PumpGTM in the wild](https://pumpgtm.com/customers/videos), videos founders and creators made on their own channels.
 
 ## Authentication
 
@@ -333,13 +373,23 @@ The path carries the major version (`/api/v1`). Existing v1 responses stay compa
 
 Questions: hello@pumpgtm.com.
 
-## Learn more
 
-- Quickstart, five minutes from key to first call: https://pumpgtm.com/docs/quickstart
-- Watch it: [How to run an entire LinkedIn sales team with Claude](https://pumpgtm.com/blog/run-a-linkedin-sales-team-with-claude) and the [PumpGTM YouTube channel](https://www.youtube.com/@pumpgtm)
-- Founders and creators using it, on their own channels: https://pumpgtm.com/customers/videos
-- Guides: [LinkedIn outbound playbook, 30+ enterprise meetings a week](https://pumpgtm.com/blog/linkedin-outbound-playbook-enterprise-meetings), [LinkedIn outreach tools with an MCP server](https://pumpgtm.com/best/linkedin-outreach-tools-with-mcp-server), [AI GTM engine: the closed-loop system we run for YC startups](https://pumpgtm.com/blog/ai-gtm-engine-closed-loop-system)
-- Agencies and platforms with many client workspaces: https://pumpgtm.com/mcp/platforms
-- Everything an agent needs in one file: https://pumpgtm.com/llms.txt
+## Guides and reading
 
-Built by [Giga Next Inc.](https://pumpgtm.com/about), San Francisco. Questions: hello@pumpgtm.com.
+| If you want to | Read |
+|---|---|
+| Understand the closed loop behind the tools | [AI GTM engine: the system we run for YC startups](https://pumpgtm.com/blog/ai-gtm-engine-closed-loop-system) |
+| Book meetings from LinkedIn at scale | [LinkedIn outbound playbook: 30+ enterprise meetings a week](https://pumpgtm.com/blog/linkedin-outbound-playbook-enterprise-meetings) |
+| Write the first message | [A cold message that gets replies: 3 rules from 10+ YC startups](https://pumpgtm.com/blog/cold-message-that-gets-replies-three-rules) |
+| Compare MCP-capable outreach tools | [LinkedIn outreach tools with an MCP server (2026)](https://pumpgtm.com/best/linkedin-outreach-tools-with-mcp-server) |
+| Score leads before you reach out | [LinkedIn lead scoring: filter leads before outreach](https://pumpgtm.com/blog/linkedin-lead-scoring-before-outreach) |
+| See a customer result | [How PumpGTM helped Supermemory find customers](https://pumpgtm.com/blog/how-pumpgtm-helped-supermemory-find-customers) |
+| Give many users or clients their own workspace | [PumpGTM for platforms and agencies](https://pumpgtm.com/mcp/platforms) |
+| Hand an agent everything at once | [pumpgtm.com/llms.txt](https://pumpgtm.com/llms.txt) |
+
+---
+
+<p align="center">
+<a href="https://pumpgtm.com">pumpgtm.com</a> · <a href="https://pumpgtm.com/docs">Docs</a> · <a href="https://app.pumpgtm.com/onboarding">Start a workspace</a> · <a href="https://x.com/pumpgtm">X</a> · <a href="https://www.youtube.com/@pumpgtm">YouTube</a> · <a href="mailto:hello@pumpgtm.com">hello@pumpgtm.com</a><br>
+<sub>Built by <a href="https://pumpgtm.com/about">Giga Next Inc.</a>, San Francisco. Documentation and schemas in this repository are MIT licensed; the hosted service is a commercial product.</sub>
+</p>
