@@ -3,12 +3,12 @@
 <h1 align="center">PumpGTM workspace REST API</h1>
 
 <p align="center"><b>Read and control one PumpGTM workspace over plain HTTPS.</b><br>
-Leads, sequences, LinkedIn pacing, the activity ledger, pending replies, signed webhooks and Energy, for dashboards, reporting and automations that are not MCP clients. Everything here is also on the <a href="https://github.com/pumpgtm/pumpgtm-mcp">MCP server</a>, which is the richer surface.</p>
+Add people to Plays and sequences on LinkedIn, email and X, read results and replies, and get signed webhooks, from your own backend or agent. The same workspace is also on the <a href="https://github.com/pumpgtm/pumpgtm-mcp">MCP server</a>, which is the richer surface.</p>
 
 <p align="center">
 <a href="https://pumpgtm.com/docs/api"><img alt="Docs" src="https://img.shields.io/badge/docs-pumpgtm.com%2Fdocs%2Fapi-2f5cff"></a>
 <a href="openapi.json"><img alt="OpenAPI" src="https://img.shields.io/badge/OpenAPI-3.1%20valid-6f42c1"></a>
-<a href="https://github.com/pumpgtm/pumpgtm-mcp"><img alt="MCP" src="https://img.shields.io/badge/MCP%20server-24%20tools-000000"></a>
+<a href="https://github.com/pumpgtm/pumpgtm-mcp"><img alt="MCP" src="https://img.shields.io/badge/MCP%20server-pumpgtm--mcp-000000"></a>
 <a href="https://pumpgtm.com/yc"><img alt="Backed by Y Combinator" src="https://img.shields.io/badge/Backed%20by-Y%20Combinator-F26522"></a>
 <a href="https://pumpgtm.com/blog/ai-founder-led-outbound-system"><img alt="Runs outbound for 10+ YC companies" src="https://img.shields.io/badge/runs%20outbound%20for-10%2B%20YC%20companies-F26522"></a>
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-lightgrey"></a>
@@ -33,6 +33,7 @@ The key is on the MCP page of your workspace at [app.pumpgtm.com](https://app.pu
 ```mermaid
 flowchart LR
   D[Your dashboard or automation] -- Bearer workspace key --> A[app.pumpgtm.com/api/v1]
+  A --> P[add people to a Play]
   A --> S[sequences, leads, activity, progress, funnel]
   A --> R[pending replies and decisions]
   A --> W[webhooks]
@@ -56,7 +57,7 @@ Base URL: `https://app.pumpgtm.com`
 
 Every request sends the workspace key: `Authorization: Bearer eve_mcp_...`. Sign in at [app.pumpgtm.com](https://app.pumpgtm.com), open **MCP** in the left nav, and copy the key. It is the same key the MCP server takes.
 
-The key's database row fixes the workspace. One key reads exactly one workspace and nothing else. A missing or unknown key returns `401 {"error":"unauthorized"}`.
+A workspace key acts on its own workspace. A Team owner key can reach the workspaces listed by `GET /api/v1/workspaces` and picks one with `X-PumpGTM-Client: <workspace id>`. A missing or unknown key returns `401 {"error":"unauthorized"}`.
 
 Keep the key server side. Never ship it to a browser or an end user's device.
 
@@ -67,18 +68,19 @@ curl https://app.pumpgtm.com/api/v1/progress?sinceDays=7 \
 
 ## Endpoints
 
-| Method and path | What it returns |
+The main calls, grouped by job. Every endpoint, with request and response schemas, is in [`openapi.json`](openapi.json) and at [pumpgtm.com/docs/api](https://pumpgtm.com/docs/api).
+
+| Job | Calls |
 |---|---|
-| `GET /api/v1/progress?sinceDays=7` | Funnel totals for the period, queued count, per LinkedIn account pacing (invites sent today, cap, ramp phase, account score). |
-| `GET /api/v1/reports/funnel?group_by=sequence` or `account` | The funnel per sequence or per account, plus A/B variant arms. |
-| `GET /api/v1/sequences` | Every sequence with steps, status, approval state and exact enrolled lead count. |
-| `PATCH /api/v1/sequences/{id}/status` | Body `{"status":"active" / "paused" / "draft"}`. Start, pause or reopen a sequence. |
-| `GET /api/v1/leads` | Leads with stage, timestamps and sequence progress. Exact `count` plus a page. |
-| `GET /api/v1/activity` | The append-only ledger of every connection, message, engagement and email an account sent. |
-| `GET /api/v1/replies` | Inbound replies waiting for a human, each with the drafted answer and the decisions allowed. |
-| `POST /api/v1/replies/{id}/decide` | Apply one decision to a pending reply. This is the only call that contacts a prospect. |
-| `GET` `POST /api/v1/webhooks`, `DELETE /api/v1/webhooks/{id}`, `POST /api/v1/webhooks/{id}/test` | Signed webhooks for replies, connections, messages and meetings. See Webhooks below. |
-| `GET /api/v1/energy` | This month's Energy: people found against the workspace allowance. `{"enabled": false}` for workspaces that are not metered. |
+| Add people to a Play | `POST /api/v1/plays/{id}/leads` with 1 to 500 people, each with any of a LinkedIn URL, email or X handle. They go straight into the Play's sequence; people already in the workspace are skipped. `GET` the same path lists them. |
+| Sequences | `GET` `POST /api/v1/sequences`, `GET` `PUT /api/v1/sequences/{id}`, `PATCH /api/v1/sequences/{id}/status`. Add people without a Play with `POST /api/v1/sequences/{id}/leads`. |
+| Leads | `GET /api/v1/leads`, `GET /api/v1/leads/{id}`, `POST /api/v1/leads/remove`. |
+| Replies | `GET /api/v1/replies`, `POST /api/v1/replies/{id}/decide`. This is the only call that contacts a prospect immediately. |
+| Results | `GET /api/v1/progress`, `GET /api/v1/reports/funnel`, `GET /api/v1/activity`. |
+| Webhooks | `GET` `POST /api/v1/webhooks`, `DELETE /api/v1/webhooks/{id}`, `POST /api/v1/webhooks/{id}/test`. |
+| Find people | `POST /api/v1/people/searches`, `POST /api/v1/people/enrich`. |
+| Account | `GET /api/v1/workspaces`, `GET /api/v1/energy`, LinkedIn sending limits. |
+| Partners | `https://app.pumpgtm.com/api/partner/v1`: one key, one workspace per client. |
 
 All responses are JSON. Timestamps are ISO 8601 in UTC. Ids are UUIDs, except LinkedIn account ids which look like `onb_...`.
 
@@ -366,13 +368,7 @@ When a `find_people` run would return more people than `remaining`, it is refuse
 
 The path carries the major version (`/api/v1`). Existing v1 responses stay compatible; new fields may be added, existing ones are not removed or renamed. A breaking change ships under a new major path while v1 keeps working. Anything scheduled for removal answers with `Deprecation: true` and a `Sunset` header at least 90 days ahead, and is announced on this page with its replacement.
 
-## Not in the REST API yet
-
-- Creating or editing sequence steps, adding leads (manual, CSV, Sales Navigator), finding people, and the account universe and CRM tools. All of these are MCP tools, see [/docs/mcp](https://pumpgtm.com/docs/mcp).
-- Key rotation by API or in the app. Write to hello@pumpgtm.com to rotate a key.
-- One key for many client workspaces. The agency layer (create and manage workspaces by API) is in progress; write to hello@pumpgtm.com to join the first cohort.
-
-Questions: hello@pumpgtm.com.
+Questions or a missing endpoint: hello@pumpgtm.com.
 
 
 ## Guides and reading
