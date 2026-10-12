@@ -18,7 +18,16 @@ Add people to Plays and sequences on LinkedIn, email and X, read results and rep
 <a href="https://pumpgtm.com/docs/quickstart">Quickstart</a> · <a href="https://pumpgtm.com/docs/api">Docs</a> · <a href="openapi.json">openapi.json</a> · <a href="examples">Examples</a> · <a href="https://github.com/pumpgtm/pumpgtm-mcp">MCP server</a> · <a href="https://www.youtube.com/@pumpgtm">YouTube</a>
 </p>
 
-## Try it in one line
+## Try it
+
+Add people to a Play (LinkedIn, email or X, whatever identities you have):
+
+```bash
+curl -X POST "https://app.pumpgtm.com/api/v1/plays/$PLAY_ID/leads" -H "Authorization: Bearer $PUMPGTM_KEY" -H "content-type: application/json" \
+  -d '{"leads":[{"person":"Jane Doe","xUsername":"janedoe","email":"jane@acme.com"}]}'
+```
+
+Or read this week's numbers:
 
 ```bash
 curl -s "https://app.pumpgtm.com/api/v1/progress?sinceDays=7" -H "Authorization: Bearer $PUMPGTM_KEY"
@@ -57,7 +66,7 @@ Base URL: `https://app.pumpgtm.com`
 
 Every request sends the workspace key: `Authorization: Bearer eve_mcp_...`. Sign in at [app.pumpgtm.com](https://app.pumpgtm.com), open **MCP** in the left nav, and copy the key. It is the same key the MCP server takes.
 
-A workspace key acts on its own workspace. A Team owner key can reach the workspaces listed by `GET /api/v1/workspaces` and picks one with `X-PumpGTM-Client: <workspace id>`. A missing or unknown key returns `401 {"error":"unauthorized"}`.
+A workspace key acts on its own workspace. A Team owner key can reach the workspaces listed by `GET /api/v1/workspaces` and picks one with `X-PumpGTM-Client: <workspace id>`. The older `X-Eve-Client` header still works the same way. A missing or unknown key returns `401 {"error":"unauthorized"}`.
 
 Keep the key server side. Never ship it to a browser or an end user's device.
 
